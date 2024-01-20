@@ -11,3 +11,86 @@ from skimage.metrics import peak_signal_noise_ratio, mean_squared_error, structu
 from sklearn.metrics import mean_absolute_error
 from skimage import restoration
 import time
+
+# Cell 3: Upload image from local system to Colab
+uploaded = files.upload()
+image_path = list(uploaded.keys())[0]
+
+
+# Cell 4: Read the uploaded image
+img = cv2.imread(image_path)
+gray_img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+
+# Cell 5: Choose the denoising method
+method = "median"
+
+
+# Cell 6: Apply the selected denoising method
+start_time = time.time()
+
+if method == "gaussian":
+    denoised_img = cv2.GaussianBlur(gray_img, (5, 5), 0)
+elif method == "median":
+    denoised_img = cv2.medianBlur(gray_img, 5)
+elif method == "total_variation":
+    denoised_img = restoration.denoise_tv_chambolle(gray_img, weight=0.05)
+elif method == "non_local_means":
+    denoised_img = cv2.fastNlMeansDenoising(gray_img, None, h=10, templateWindowSize=7, searchWindowSize=21)
+
+end_time = time.time()
+denoising_time = end_time - start_time
+
+
+
+
+# Cell 7: Display the original and denoised images
+plt.figure(figsize=(10, 5))
+
+plt.subplot(1, 2, 1)
+plt.imshow(cv2.cvtColor(img, cv2.COLOR_BGR2RGB))
+plt.title('Original Image')
+
+plt.subplot(1, 2, 2)
+plt.imshow(denoised_img, cmap='gray')
+plt.title(f'{method.capitalize()} Denoised Image')
+
+plt.show()
+
+
+# Cell 8: Calculate metrics
+psnr_value = peak_signal_noise_ratio(gray_img, denoised_img)
+mse_value = mean_squared_error(gray_img, denoised_img)
+ssim_value, _ = structural_similarity(gray_img, denoised_img, full=True)
+mae_value = mean_absolute_error(gray_img, denoised_img)
+rmse_value = np.sqrt(mse_value)
+
+# Cell 9: Display the original and denoised images with metrics
+plt.figure(figsize=(15, 7))
+
+# Display the original image
+plt.subplot(1, 3, 1)
+plt.imshow(cv2.cvtColor(img, cv2.COLOR_BGR2RGB))
+plt.title('Original Image')
+
+# Display the denoised image
+plt.subplot(1, 3, 2)
+plt.imshow(denoised_img, cmap='gray')
+plt.title(f'{method.capitalize()} Denoised Image')
+
+# Display metrics
+metrics_str = (
+    f'PSNR: {psnr_value:.2f} dB (Higher is better)\n'
+    f'MSE: {mse_value:.2f} (Lower is better)\n'
+    f'SSIM: {ssim_value:.4f} (Closer to 1 is better)\n'
+    f'MAE: {mae_value:.2f} (Lower is better)\n'
+    f'RMSE: {rmse_value:.2f} (Lower is better)\n'
+    f'Denoising Time: {denoising_time:.4f} seconds'
+)
+
+plt.subplot(1, 3, 3)
+plt.text(0, 0.5, metrics_str, {'fontsize': 12}, va='center', ha='left')
+plt.axis('off')  # Turn off axis for the metrics display
+
+plt.tight_layout()
+plt.show()
+
